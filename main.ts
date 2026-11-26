@@ -19,7 +19,7 @@
 // The program is deliberately deterministic: no input, no randomness, no
 // network, no clock. Every run writes the same bytes.
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const LINE =
@@ -46,6 +46,12 @@ function main(): void {
   validate(LINE);
   mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(OUT_FILE, LINE + "\n", "utf8");
+  // Verify the write landed exactly: read it back and compare byte for
+  // byte, so a silent short write can never pass as a good run.
+  const written = readFileSync(OUT_FILE, "utf8");
+  if (written !== LINE + "\n") {
+    throw new Error(`entry.txt mismatch after write: got ${written.length} chars`);
+  }
   // Report where the entry went, for the run log.
   const dir = dirname(OUT_FILE);
   console.log(`wrote ${LINE.length} characters to ${OUT_FILE} (dir: ${dir})`);
